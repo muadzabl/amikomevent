@@ -2,21 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use App\Models\Partner;
+use App\Models\Category;  // ← pastikan ada ini
+use App\Models\Partner;   // ← pastikan ada ini
+use App\Models\Event;     // ← pastikan ada ini
 
 class HomeController extends Controller
 {
-    /**
-     * Soal 4: Tampilkan homepage publik dengan data Partner & Category
-     */
-   
+    public function index()
+    {
+        $categories = Category::orderBy('name')->get();
+        $partners   = Partner::orderBy('name')->get();
 
-public function index()
-{
-    $partners   = Partner::orderBy('name')->get();
-    $categories = Category::orderBy('name')->get();
+        $selectedCategory = request('category');
 
-    return view('welcome', compact('partners', 'categories'));
-}
+        $events = Event::with('category')
+            ->when($selectedCategory, function ($query) use ($selectedCategory) {
+                $query->where('category_id', $selectedCategory);
+            })
+            ->orderBy('date', 'asc')
+            ->get();
+
+        return view('welcome', compact('partners', 'categories', 'events', 'selectedCategory'));
+    }
 }

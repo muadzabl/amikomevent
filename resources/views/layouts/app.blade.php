@@ -36,11 +36,6 @@
             <a href="#" class="hover:text-indigo-600 transition">Kategori</a>
             <a href="#" class="hover:text-indigo-600 transition">Tentang Kami</a>
         </div>
-        <!-- <div class="flex gap-3">
-            <button class="px-5 py-2.5 rounded-xl font-semibold hover:bg-slate-200 transition">Login</button>
-            <button
-                class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">Daftar</button>
-        </div> -->
     </nav>
 
     @yield('content')
@@ -48,6 +43,8 @@
     <!-- Footer -->
     <footer class="bg-indigo-900 text-indigo-100 py-20 px-6 mt-20">
         <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+
+            {{-- Kolom 1 & 2: Logo & Deskripsi --}}
             <div class="space-y-4 col-span-2">
                 <div class="flex items-center gap-2">
                     <div
@@ -57,22 +54,47 @@
                 </div>
                 <p class="max-w-xs text-indigo-300">Platform reservasi tiket event online terbaik untuk mahasiswa dan
                     penyelenggara profesional.</p>
+
+                {{-- Kolom Kategori di bawah deskripsi (mobile) / inline pada desktop diganti jadi kolom sendiri --}}
             </div>
+
+            {{-- Kolom 3: Kategori Dinamis dari DB --}}
             <div>
-                <h4 class="text-white font-bold mb-6">Navigasi</h4>
-                <ul class="space-y-4">
-                    <li><a href="#" class="hover:text-white transition">Home</a></li>
-                    <li><a href="#" class="hover:text-white transition">Semua Event</a></li>
-                    <li><a href="#" class="hover:text-white transition">Cara Bayar</a></li>
+                <h4 class="text-white font-bold mb-6">Kategori</h4>
+                <ul class="space-y-3">
+                    @isset($categories)
+                        @forelse ($categories as $category)
+                            <li>
+                                <a href="#events" class="hover:text-white transition text-indigo-300">
+                                    {{ $category->name }}
+                                </a>
+                            </li>
+                        @empty
+                            <li class="text-indigo-400 text-sm">Belum ada kategori.</li>
+                        @endforelse
+                    @endisset
                 </ul>
             </div>
-            <div>
-                <h4 class="text-white font-bold mb-6">Hubungi Kami</h4>
-                <ul class="space-y-4">
-                    <li>support@eventtiket.com</li>
-                    <li>+62 812 3456 7890</li>
-                </ul>
+
+            {{-- Kolom 4: Navigasi & Kontak --}}
+            <div class="space-y-10">
+                <div>
+                    <h4 class="text-white font-bold mb-6">Navigasi</h4>
+                    <ul class="space-y-4">
+                        <li><a href="#" class="hover:text-white transition">Home</a></li>
+                        <li><a href="#" class="hover:text-white transition">Semua Event</a></li>
+                        <li><a href="#" class="hover:text-white transition">Cara Bayar</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-6">Hubungi Kami</h4>
+                    <ul class="space-y-4">
+                        <li>support@eventtiket.com</li>
+                        <li>+62 812 3456 7890</li>
+                    </ul>
+                </div>
             </div>
+
         </div>
         <div class="max-w-7xl mx-auto pt-12 mt-12 border-t border-indigo-800 text-center text-indigo-400 text-sm">
             &copy; 2024 AmikomEventHub. Built with Laravel & Tailwind CSS.
