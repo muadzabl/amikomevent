@@ -1,26 +1,16 @@
 <?php
 
-namespace App\Http\Controllers\Admin; // ← tambah \Admin
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Transaction;
 
 class TransactionController extends Controller
 {
     public function index()
     {
-        return view('admin.transactions.index'); // ← "transactions" bukan "transaction"
+        // Mengambil transaksi terbaru dengan pembatasan 20 baris/halaman
+        $transactions = Transaction::with('event')->latest()->paginate(20);
+        return view('admin.transactions.index', compact('transactions'));
     }
-
-    public function create() {}
-
-    public function store(Request $request) {}
-
-    public function show(string $id) {}
-
-    public function edit(string $id) {}
-
-    public function update(Request $request, string $id) {}
-
-    public function destroy(string $id) {}
 }

@@ -28,6 +28,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::middleware(['auth', 'admin'])->group(function () {
+        Route::get('transactions', [TransactionController::class, 'index'])->name('transactions.index');
 
         Route::get('dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
@@ -38,6 +39,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('transactions', [TransactionController::class, 'index'])
             ->name('transactions.index');
+        
     });
 });
 
@@ -52,3 +54,5 @@ Route::get('/bantuan', [HomeController::class, 'bantuan'])->name('bantuan');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::get('/profil', [HomeController::class, 'profil'])->name('profil');
 Route::get('/katalog', [HomeController::class, 'katalog'])->name('katalog');
+Route::get('/checkout/{event}', [App\Http\Controllers\CheckoutController::class, 'create'])->name('checkout.create');
+Route::post('/checkout/{event}', [App\Http\Controllers\CheckoutController::class, 'store'])->name('checkout.store');
