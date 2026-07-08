@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\EventController as EventAdminController;
 use App\Http\Controllers\Admin\PartnerController;
+use App\Http\Controllers\MidtransWebhookController;
 
 // ==========================================
 // RUTE USER AREA / PUBLIK (Dapat diakses tanpa login)
@@ -60,3 +61,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('transactions', [TransactionController::class, 'index'])->name('transactions.index');
     });
 });
+
+// ==========================================
+// WEBHOOK WEB / MIDTRANS CALLBACK (Wajib di Luar Prefix Admin)
+// ==========================================
+Route::post('/midtrans/callback', [MidtransWebhookController::class, 'handle']);

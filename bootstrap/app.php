@@ -10,11 +10,21 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
+    ->withMiddleware(function (Middleware $middleware) {
+        // 1. Daftarkan alias middleware admin Anda
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminMiddleware::class,]);
-            $middleware->redirectGuestsTo(('admin/login'));
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        ]);
+
+        // 2. Pengaturan redirect untuk guest
+        $middleware->redirectGuestsTo('admin/login');
+
+        // 3. Matikan proteksi token CSRF khusus untuk rute webhook Midtrans
+        $middleware->validateCsrfTokens(except: [
+            'midtrans/callback',
+            '/midtrans/callback'
+        ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
