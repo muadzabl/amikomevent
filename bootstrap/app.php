@@ -11,9 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // 1. Daftarkan alias middleware admin Anda
+        // 1. Daftarkan alias middleware admin & role Multi-Tenant
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'role'  => \App\Http\Middleware\RoleMiddleware::class, // 🔥 BARIS INI YANG DITAMBAHKAN
         ]);
 
         // 2. Pengaturan redirect untuk guest

@@ -33,28 +33,60 @@ class CheckoutController extends Controller
 
         // 3. Generate Kode TRX (Unik)
         $orderId = 'TRX-' . time() . '-' . Str::random(5);
+
+        // ====================================================================
+        // 🔥 FITUR OPSI 1: BYPASS TRANSAKSI UNTUK ACARA GRATIS (Rp 0)
+        // ====================================================================
+        if ($event->price == 0) {
+            // Merekam transaksi gratis langsung dengan status SUCCESS
+            $transaction = Transaction::create([
+                'event_id'       => $event->id,
+                'order_id'       => $orderId,
+                'customer_name'  => $request->customer_name,
+                'customer_email' => $request->customer_email,
+                'customer_phone' => $request->customer_phone,
+                'total_price'    => 0, // Tanpa biaya admin
+                'status'         => 'success', // Langsung Lunas / Berhasil
+            ]);
+
+            // Kurangi stok tiket saat itu juga
+            $event->decrement('stock');
+
+            // Kirim E-Ticket via Email (jika Mailable disiapkan)
+            try {
+                \Illuminate\Support\Facades\Mail::to($transaction->customer_email)
+                    ->send(new \App\Mail\EventTicketMail($transaction));
+            } catch (\Exception $e) {
+                \Log::error('Gagal mengirim email E-Ticket Acara Gratis: ' . $e->getMessage());
+            }
+
+            // Langsung bypass menuju halaman sukses / E-Ticket
+            return redirect()->route('checkout.success', $transaction->order_id)
+                ->with('success', 'Pendaftaran acara gratis berhasil! E-Ticket Anda telah diterbitkan.');
+        }
+
+        // ====================================================================
+        // 💳 UNTUK ACARA BERBAYAR (TETAP MELALUI MIDTRANS)
+        // ====================================================================
         $totalPrice = $event->price + 5000; // Menambahkan biaya admin (dummy)
 
         // 4. Merekam Transaksi ke Database
         $transaction = Transaction::create([
-            'event_id' => $event->id,
-            'order_id' => $orderId,
-            'customer_name' => $request->customer_name,
+            'event_id'       => $event->id,
+            'order_id'       => $orderId,
+            'customer_name'  => $request->customer_name,
             'customer_email' => $request->customer_email,
             'customer_phone' => $request->customer_phone,
-            'total_price' => $totalPrice,
-            'status' => 'Pending', // Status Awal
+            'total_price'    => $totalPrice,
+            'status'         => 'Pending', // Status Awal
         ]);
 
         // --- INTEGRASI SNAP MIDTRANS ---
-
-        // Konfigurasi Kredensial Berdasarkan File Config Terpusat (Aman dari Cache)
         \Midtrans\Config::$serverKey = config('midtrans.server_key');
-        \Midtrans\Config::$isProduction = config('midtrans.is_production'); // Mode Sandbox!
+        \Midtrans\Config::$isProduction = config('midtrans.is_production');
         \Midtrans\Config::$isSanitized = true;
         \Midtrans\Config::$is3ds = true;
 
-        // Susun Paket Array Data Transaksi
         $params = [
             'transaction_details' => [
                 'order_id' => $orderId,
@@ -68,13 +100,9 @@ class CheckoutController extends Controller
         ];
 
         try {
-            // Perintah Tembak Generate Snap Token
             $snapToken = \Midtrans\Snap::getSnapToken($params);
-
-            // Update rekaman kita bahwa transaksi terkait sudah memiliki id token pelunasan
             $transaction->update(['snap_token' => $snapToken]);
 
-            // Redirect ke halaman antarmuka pembayaran final pelanggan
             return redirect()->route('checkout.payment', $transaction->order_id);
 
         } catch (\Exception $e) {
@@ -84,37 +112,34 @@ class CheckoutController extends Controller
 
     public function payment($order_id)
     {
-        // Mengambil daftar kategori untuk keperluan menu footer
         $categories = \App\Models\Category::all();
-
         $transaction = Transaction::with('event')->where('order_id', $order_id)->firstOrFail();
         return view('checkout.payment', compact('transaction', 'categories'));
     }
 
-        public function success($order_id)
+    public function success($order_id)
     {
-        // Mengambil daftar kategori untuk keperluan menu footer
         $categories = \App\Models\Category::all();
-
         $transaction = Transaction::with('event')->where('order_id', $order_id)->firstOrFail();
         
-        // Konfigurasi Midtrans untuk mengecek status transaksi langsung ke API
+        // Jika status transaksi sudah 'success' (misal dari bypass gratis), langsung tampilkan view
+        if (strtolower($transaction->status) === 'success') {
+            return view('checkout.success', compact('transaction', 'categories'));
+        }
+
+        // Konfigurasi Midtrans untuk mengecek status transaksi berbayar
         \Midtrans\Config::$serverKey = env('MIDTRANS_SERVER_KEY');
         \Midtrans\Config::$isProduction = false;
         \Midtrans\Config::$isSanitized = true;
         \Midtrans\Config::$is3ds = true;
 
         try {
-            // Mengecek status pesanan secara mandiri (Bypass)
             $status = \Midtrans\Transaction::status($order_id);
             
             if ($status) {
-                // Mengambil nilai status transaksi
                 $trx_status = is_array($status) ? ($status['transaction_status'] ?? '') : ($status->transaction_status ?? '');
                 
-                // Jika API Midtrans mengonfirmasi bahwa transaksi telah berhasil (settlement / capture)
                 if (in_array($trx_status, ['settlement', 'capture'])) {
-                    // Hanya lakukan update jika status di database lokal masih 'pending' (indikasi Webhook tidak masuk)
                     if (strtolower($transaction->status) === 'pending') {
                         $transaction->update(['status' => 'success']);
                         
@@ -133,7 +158,6 @@ class CheckoutController extends Controller
                 }
             }
         } catch (\Exception $e) {
-            // Jika terjadi error dari API Midtrans (transaksi tidak valid), kembalikan ke beranda
             return redirect()->route('home')->with('error', 'Transaksi tidak ditemukan atau gagal diproses oleh sistem pembayaran.');
         }
 

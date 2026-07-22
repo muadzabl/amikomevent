@@ -21,6 +21,14 @@
         .value { font-weight: bold; font-size: 16px; margin: 0; }
         .qr-section { background-color: #f8fafc; padding: 25px; border-radius: 20px; text-align: center; margin-top: 10px; }
         .qr-container { background-color: white; padding: 15px; border-radius: 12px; display: inline-block; margin-bottom: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        
+        /* Stylings Tombol Download & Action */
+        .action-buttons { padding: 0 30px 20px 30px; text-align: center; }
+        .btn-download { display: block; width: 100%; padding: 14px 0; background-color: #4f46e5; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 14px; text-align: center; font-size: 14px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); transition: background-color 0.2s; }
+        .btn-download:hover { background-color: #4338ca; }
+        .btn-home { display: inline-block; margin-top: 12px; color: #64748b; text-decoration: none; font-size: 13px; font-weight: 600; }
+        .btn-home:hover { color: #0f172a; }
+
         .footer { text-align: center; padding: 0 30px 30px 30px; color: #94a3b8; font-size: 12px; }
     </style>
 </head>
@@ -68,6 +76,16 @@
                     </div>
                     <p style="margin: 0; font-family: monospace; font-weight: bold; color: #1e293b;">{{ $transaction->order_id }}</p>
                 </div>
+            </div>
+
+            <!-- 🔥 TOMBOL DOWNLOAD PDF E-TICKET 🔥 -->
+            <div class="action-buttons">
+                <a href="{{ route('ticket.download', $transaction->id) }}" class="btn-download">
+                    📥 Download PDF E-Ticket
+                </a>
+                <a href="{{ route('home') }}" class="btn-home">
+                    &larr; Kembali ke Beranda
+                </a>
             </div>
 
             <div class="footer">

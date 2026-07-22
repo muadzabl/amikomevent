@@ -29,4 +29,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    // Relasi ke Profil Organizer (HIMA/UKM)
+    public function organizer()
+    {
+        return $this->hasOne(Organizer::class);
+    }
+
+    // Helper untuk mengecek role
+    public function isSuperAdmin()
+    {
+        return $this->role === 'superadmin';
+    }
+
+    public function isOrganizer()
+    {
+        return $this->role === 'organizer';
+    }
 }

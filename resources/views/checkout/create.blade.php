@@ -30,7 +30,7 @@
                      alt="Event" class="w-24 h-24 rounded-2xl object-cover">
                  <div>
                      <h4 class="font-extrabold text-lg">{{ $event->title }}</h4>
-                     <p class="text-slate-500">{{ $event->date->format('d M Y') }} • {{ $event->location }}</p>
+                     <p class="text-slate-500">{{ \Carbon\Carbon::parse($event->date)->format('d M Y') }} • {{ $event->location }}</p>
                      <p class="text-indigo-600 font-bold mt-2">1 x Rp {{ number_format($event->price, 0, ',', '.') }}</p>
                  </div>
              </div>
