@@ -13,11 +13,13 @@ class TicketController extends Controller
     {
         $user = auth()->user();
 
-        // Ambil semua transaksi berdasarkan email user yang sedang login
-        $transactions = Transaction::with('event')
-            ->where('customer_email', $user->email)
-            ->latest()
-            ->get();
+        // Ambil semua transaksi berdasarkan email user yang sedang login beserta review user
+        $transactions = Transaction::with(['event.reviews' => function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        }])
+        ->where('customer_email', $user->email)
+        ->latest()
+        ->get();
 
         return view('ticket', compact('transactions'));
     }

@@ -39,6 +39,21 @@
         <p class="text-slate-500 font-medium mt-1">Daftar E-Ticket acara yang telah Anda pesan.</p>
     </div>
 
+    <!-- Alert Notifikasi Session -->
+    @if(session('success'))
+        <div class="max-w-xl mx-auto mb-6 p-4 bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-sm rounded-2xl flex items-center gap-3 shadow-sm no-print">
+            <span class="text-xl">🌟</span>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="max-w-xl mx-auto mb-6 p-4 bg-rose-100 border border-rose-300 text-rose-800 font-bold text-sm rounded-2xl flex items-center gap-3 shadow-sm no-print">
+            <span class="text-xl">⚠️</span>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
     @if ($transactions->isEmpty())
         <!-- TAMPILAN JIKA BELUM MEMILIKI TIKET -->
         <div class="max-w-md mx-auto bg-white rounded-3xl p-10 text-center border border-slate-100 shadow-sm no-print">
@@ -58,14 +73,15 @@
         </div>
     @else
         <!-- DAFTAR TIKET PENGGUNA -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             @foreach ($transactions as $transaction)
                 @php
                     $isPaid = in_array(strtolower($transaction->status), ['paid', 'success', 'settlement', 'capture']);
                     $isUsed = (bool) $transaction->is_used;
+                    $userReview = $transaction->event ? $transaction->event->reviews->first() : null;
                 @endphp
 
-                <div class="ticket-card bg-white rounded-3xl border {{ $isUsed ? 'border-slate-300 opacity-90' : 'border-slate-200 shadow-xl' }} overflow-hidden text-left flex flex-col justify-between relative">
+                <div class="ticket-card bg-white rounded-3xl border {{ $isUsed ? 'border-slate-300 shadow-md' : 'border-slate-200 shadow-xl' }} overflow-hidden text-left flex flex-col justify-between relative">
                     
                     <!-- Header Tiket -->
                     <div class="p-6 {{ $isUsed ? 'bg-slate-700' : ($isPaid ? 'bg-indigo-600' : 'bg-amber-500') }} text-white relative">
@@ -156,7 +172,7 @@
                         </p>
                     </div>
 
-                    <!-- Tombol Aksi -->
+                    <!-- Tombol Aksi PDF/Print -->
                     <div class="p-6 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-3 no-print">
                         <a href="{{ route('ticket.download', $transaction->id) }}"
                            class="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-center rounded-xl font-bold text-xs transition shadow-md shadow-indigo-200">
@@ -168,9 +184,137 @@
                         </button>
                     </div>
 
+                    <!-- BAGIAN ULASAN DAN PENILAIAN BINTANG (Hanya Tampil Setelah Tiket Di-Scan / Used) -->
+                    @if($isUsed && $transaction->event)
+                        <div class="p-6 bg-amber-50/70 border-t-2 border-amber-200 no-print">
+                            @if(!$userReview)
+                                <!-- Form Input Ulasan & Rating Bintang -->
+                                <div class="bg-white p-5 rounded-2xl border border-amber-200 shadow-sm">
+                                    <div class="flex items-center gap-2.5 mb-3">
+                                        <span class="text-2xl">🌟</span>
+                                        <div>
+                                            <h4 class="text-sm font-extrabold text-slate-800">Berikan Ulasan & Rating Acara</h4>
+                                            <p class="text-[11px] text-slate-500 font-medium">Tiket Anda telah discan! Bagaimana pengalaman Anda mengikuti acara ini?</p>
+                                        </div>
+                                    </div>
+
+                                    <form action="{{ route('reviews.store', $transaction->event_id) }}" method="POST" class="space-y-4">
+                                        @csrf
+                                        <!-- Rating Bintang Interaktif -->
+                                        <div>
+                                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1.5">Penilaian Bintang</label>
+                                            <div class="flex items-center gap-1.5" id="star-rating-container-{{ $transaction->id }}">
+                                                @for ($i = 1; $i <= 5; $i++)
+                                                    <button type="button" 
+                                                            onclick="setRating({{ $transaction->id }}, {{ $i }})" 
+                                                            onmouseover="hoverRating({{ $transaction->id }}, {{ $i }})" 
+                                                            onmouseleave="resetRating({{ $transaction->id }})"
+                                                            class="star-btn-{{ $transaction->id }} text-slate-300 hover:scale-125 transition-all duration-200 focus:outline-none" 
+                                                            data-value="{{ $i }}"
+                                                            title="{{ $i }} Bintang">
+                                                        <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                                                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                                                        </svg>
+                                                    </button>
+                                                @endfor
+                                                <span id="rating-text-{{ $transaction->id }}" class="text-xs font-bold text-amber-600 ml-2">Pilih 1-5 Bintang</span>
+                                            </div>
+                                            <input type="hidden" name="rating" id="rating-input-{{ $transaction->id }}" value="" required>
+                                        </div>
+
+                                        <!-- Input Catatan Ulasan -->
+                                        <div>
+                                            <label for="comment-{{ $transaction->id }}" class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Ulasan Anda</label>
+                                            <textarea name="comment" 
+                                                      id="comment-{{ $transaction->id }}" 
+                                                      rows="3" 
+                                                      required 
+                                                      placeholder="Tulis ulasan, saran, atau kesan Anda mengenai acara ini..." 
+                                                      class="w-full p-3 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition outline-none resize-none"></textarea>
+                                        </div>
+
+                                        <!-- Tombol Kirim -->
+                                        <button type="submit" 
+                                                class="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs rounded-xl shadow-md shadow-amber-200 transition flex items-center justify-center gap-2">
+                                            <span>🚀</span> Kirim Ulasan & Rating
+                                        </button>
+                                    </form>
+                                </div>
+                            @else
+                                <!-- Tampilan Ulasan Yang Sudah Dikirim -->
+                                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-lg">🌟</span>
+                                            <h4 class="text-xs font-extrabold text-slate-800">Ulasan & Penilaian Anda</h4>
+                                        </div>
+                                        <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200 flex items-center gap-1">
+                                            <span>✓</span> Terkirim
+                                        </span>
+                                    </div>
+
+                                    <!-- Bintang Rating Terkirim -->
+                                    <div class="flex items-center gap-1 mb-2">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <svg class="w-5 h-5 {{ $i <= $userReview->rating ? 'text-amber-400 fill-current' : 'text-slate-200 fill-current' }}" viewBox="0 0 24 24">
+                                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                                            </svg>
+                                        @endfor
+                                        <span class="text-xs font-bold text-amber-600 ml-1.5">({{ $userReview->rating }}/5)</span>
+                                    </div>
+
+                                    <p class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 italic leading-relaxed">
+                                        "{{ $userReview->comment }}"
+                                    </p>
+                                    <p class="text-[10px] text-slate-400 font-semibold mt-2 text-right">
+                                        Dikirim pada {{ $userReview->created_at ? $userReview->created_at->translatedFormat('d M Y, H:i') : 'hari ini' }}
+                                    </p>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
                 </div>
             @endforeach
         </div>
     @endif
 </main>
+
+<script>
+    const selectedRatings = {};
+
+    function setRating(transactionId, rating) {
+        selectedRatings[transactionId] = rating;
+        document.getElementById('rating-input-' + transactionId).value = rating;
+        updateStars(transactionId, rating);
+        
+        const labels = ['Sangat Buruk (1/5)', 'Buruk (2/5)', 'Cukup (3/5)', 'Bagus (4/5)', 'Sangat Bagus (5/5)'];
+        const labelEl = document.getElementById('rating-text-' + transactionId);
+        if (labelEl) {
+            labelEl.innerText = labels[rating - 1];
+        }
+    }
+
+    function hoverRating(transactionId, rating) {
+        updateStars(transactionId, rating);
+    }
+
+    function resetRating(transactionId) {
+        const current = selectedRatings[transactionId] || 0;
+        updateStars(transactionId, current);
+    }
+
+    function updateStars(transactionId, rating) {
+        const buttons = document.querySelectorAll('.star-btn-' + transactionId);
+        buttons.forEach((btn, index) => {
+            if (index < rating) {
+                btn.classList.remove('text-slate-300');
+                btn.classList.add('text-amber-400');
+            } else {
+                btn.classList.remove('text-amber-400');
+                btn.classList.add('text-slate-300');
+            }
+        });
+    }
+</script>
 @endsection
