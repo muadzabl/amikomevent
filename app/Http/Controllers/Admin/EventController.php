@@ -24,7 +24,8 @@ class EventController extends Controller
     public function create()
     {
         $categories = \App\Models\Category::all();
-        return view('admin.events.create', compact('categories'));
+        $organizers = \App\Models\Organizer::all();
+        return view('admin.events.create', compact('categories', 'organizers'));
     }
 
     /**
@@ -34,15 +35,21 @@ class EventController extends Controller
     {
         // Menerapkan validasi data request dari pengguna
         $data = $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'date' => 'required|date',
-            'location' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|numeric|min:1',
-            'poster' => 'nullable|image|max:2048' // Maksimal 2MB
+            'category_id'  => 'required|exists:categories,id',
+            'organizer_id' => 'nullable|exists:organizers,id',
+            'title'        => 'required|string|max:255',
+            'description'  => 'nullable|string',
+            'date'         => 'required|date',
+            'location'     => 'required|string|max:255',
+            'price'        => 'required|numeric|min:0',
+            'stock'        => 'required|numeric|min:1',
+            'poster'       => 'nullable|image|max:2048' // Maksimal 2MB
         ]);
+
+        if (empty($data['organizer_id'])) {
+            $firstOrg = \App\Models\Organizer::first();
+            $data['organizer_id'] = $firstOrg ? $firstOrg->id : null;
+        }
 
         if ($request->hasFile('poster')) {
             // Simpan ke direktori storage/app/public/posters
@@ -70,7 +77,8 @@ class EventController extends Controller
     public function edit(Event $event)
     {
         $categories = \App\Models\Category::all();
-        return view('admin.events.edit', compact('event', 'categories'));
+        $organizers = \App\Models\Organizer::all();
+        return view('admin.events.edit', compact('event', 'categories', 'organizers'));
     }
 
     /**
@@ -79,15 +87,21 @@ class EventController extends Controller
     public function update(Request $request, Event $event)
     {
         $data = $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'date' => 'required|date',
-            'location' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|numeric|min:1',
-            'poster' => 'nullable|image|max:2048'
+            'category_id'  => 'required|exists:categories,id',
+            'organizer_id' => 'nullable|exists:organizers,id',
+            'title'        => 'required|string|max:255',
+            'description'  => 'nullable|string',
+            'date'         => 'required|date',
+            'location'     => 'required|string|max:255',
+            'price'        => 'required|numeric|min:0',
+            'stock'        => 'required|numeric|min:1',
+            'poster'       => 'nullable|image|max:2048'
         ]);
+
+        if (empty($data['organizer_id'])) {
+            $firstOrg = \App\Models\Organizer::first();
+            $data['organizer_id'] = $firstOrg ? $firstOrg->id : null;
+        }
 
         if ($request->hasFile('poster')) {
             // Hapus gambar lama jika sebelumnya sudah memiliki poster

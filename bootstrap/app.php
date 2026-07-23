@@ -11,19 +11,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // 1. Daftarkan alias middleware admin & role Multi-Tenant
+        // Daftarkan alias middleware untuk semua role
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminMiddleware::class,
-            'role'  => \App\Http\Middleware\RoleMiddleware::class, // 🔥 BARIS INI YANG DITAMBAHKAN
+            'admin'     => \App\Http\Middleware\AdminMiddleware::class,
+            'organizer' => \App\Http\Middleware\OrganizerMiddleware::class,
+            'role'      => \App\Http\Middleware\RoleMiddleware::class,
         ]);
 
-        // 2. Pengaturan redirect untuk guest
-        $middleware->redirectGuestsTo('admin/login');
+        // Redirect guest ke halaman login customer (bukan admin)
+        $middleware->redirectGuestsTo('/login');
 
-        // 3. Matikan proteksi token CSRF khusus untuk rute webhook Midtrans
+        // Matikan CSRF khusus untuk webhook Midtrans
         $middleware->validateCsrfTokens(except: [
             'midtrans/callback',
-            '/midtrans/callback'
+            '/midtrans/callback',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

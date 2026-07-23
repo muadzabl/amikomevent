@@ -11,36 +11,33 @@ class TicketController extends Controller
     // Menampilkan halaman "Tiket Saya"
     public function show()
     {
-        // Cari transaksi berdasarkan email user yang sedang login
-        $transaction = Transaction::with('event')
-            ->where('customer_email', auth()->user()->email)
+        $user = auth()->user();
+
+        // Ambil semua transaksi berdasarkan email user yang sedang login
+        $transactions = Transaction::with('event')
+            ->where('customer_email', $user->email)
             ->latest()
-            ->first();
+            ->get();
 
-        // Jika belum ada transaksi dengan email tersebut, 
-        // ambil transaksi terakhir di database agar halaman tetap bisa di-test
-        if (!$transaction) {
-            $transaction = Transaction::with('event')->latest()->first();
-        }
-
-        // Jika database benar-benar kosong
-        if (!$transaction) {
-            abort(404, 'Belum ada data transaksi untuk ditampilkan.');
-        }
-
-        // Kirim variabel $transaction (singular) ke view ticket.blade.php
-        return view('ticket', compact('transaction'));
+        return view('ticket', compact('transactions'));
     }
 
     // Method untuk Download PDF E-Ticket
     public function downloadPdf($id)
     {
+        $user = auth()->user();
+
         // Cari transaksi berdasarkan ID
         $transaction = Transaction::with(['event'])->findOrFail($id);
 
+        // Pastikan tiket milik user yang sedang login (kecuali admin/superadmin)
+        if (!in_array($user->role, ['admin', 'superadmin']) && strtolower($transaction->customer_email) !== strtolower($user->email)) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk mengunduh tiket ini.');
+        }
+
         // Render tampilan khusus PDF
         $pdf = Pdf::loadView('emails.ticket_pdf', compact('transaction'));
-        
+
         // Download file PDF
         return $pdf->download('E-Ticket-' . $transaction->order_id . '.pdf');
     }

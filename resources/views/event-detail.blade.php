@@ -4,23 +4,53 @@
 <main class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
     <div class="lg:col-span-1">
         <div class="sticky top-32">
-            <img src="{{ ($event->poster_path && Storage::disk('public')->exists($event->poster_path))
-                          ? asset('storage/' . $event->poster_path)
-                          : 'https://placehold.co/200x600' }}" 
-                 alt="{{ $event->title }}"
-                 class="w-full rounded-[2.5rem] shadow-2xl border-8 border-white object-cover aspect-[3/4]">
+            @php
+            // Support Cloudinary (http/https) atau path lokal storage
+            if ($event->poster_path) {
+                $posterUrl = Str::startsWith($event->poster_path, ['http://', 'https://'])
+                    ? $event->poster_path
+                    : (Storage::disk('public')->exists($event->poster_path)
+                        ? asset('storage/' . $event->poster_path)
+                        : 'https://placehold.co/400x533/eef2ff/6366f1?text=No+Image');
+            } else {
+                $posterUrl = 'https://placehold.co/400x533/eef2ff/6366f1?text=No+Image';
+            }
+        @endphp
+        <img src="{{ $posterUrl }}"
+             alt="{{ $event->title }}"
+             class="w-full rounded-[2.5rem] shadow-2xl border-8 border-white object-cover aspect-[3/4]"
+             onerror="this.onerror=null; this.src='https://placehold.co/400x533/eef2ff/6366f1?text=No+Image';">
             
             <div class="mt-8 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                <h4 class="font-bold mb-4">Penyelenggara</h4>
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold">
-                        AB
+                <h4 class="font-bold mb-3 text-slate-800">Penyelenggara Acara</h4>
+                @if($event->organizer)
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-md">
+                            {{ strtoupper(substr($event->organizer->name, 0, 2)) }}
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900 leading-tight">{{ $event->organizer->name }}</p>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="text-amber-400 text-xs">⭐ {{ $event->organizer->averageRating() }}</span>
+                                <span class="text-[11px] text-slate-400">({{ $event->organizer->totalReviews() }} ulasan)</span>
+                            </div>
+                            <a href="{{ route('organizers.show', $event->organizer->id) }}" 
+                               class="text-xs text-indigo-600 font-bold hover:underline block mt-1">
+                                🌟 Lihat Rekam Jejak Ulasan →
+                            </a>
+                        </div>
                     </div>
-                    <div>
-                        <p class="font-bold text-slate-800">ABP Productions</p>
-                        <p class="text-xs text-slate-500">Verified Organizer</p>
+                @else
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-md">
+                            AH
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900 leading-tight">AmikomEventHub Partner</p>
+                            <p class="text-xs text-slate-500">Verified Organizer</p>
+                        </div>
                     </div>
-                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -168,7 +198,7 @@
                 </form>
             @else
                 <p class="text-slate-500 mb-6 italic text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    Silakan <a href="{{ route('admin.login') }}" class="text-indigo-600 font-bold underline">login</a> terlebih dahulu untuk memberikan ulasan.
+                    Silakan <a href="{{ route('login') }}" class="text-indigo-600 font-bold underline">login</a> terlebih dahulu untuk memberikan ulasan.
                 </p>
             @endauth
 

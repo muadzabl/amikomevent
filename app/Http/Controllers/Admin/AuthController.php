@@ -8,34 +8,58 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    // 1. Fungsi menampilkan halaman view formulir
-    public function showLogin() {
+    /**
+     * Tampilkan halaman login Admin.
+     */
+    public function showLogin()
+    {
+        // Jika sudah login sebagai admin, langsung ke dashboard
+        if (auth()->check() && in_array(auth()->user()->role, ['admin', 'superadmin'])) {
+            return redirect()->route('admin.dashboard');
+        }
+
         return view('auth.login');
     }
 
-    // 2. Fungsi memproses validasi Submit Log In
-    public function login(Request $request) {
+    /**
+     * Proses login Admin.
+     */
+    public function login(Request $request)
+    {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'email'    => ['required', 'email'],
             'password' => ['required'],
         ]);
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect()->route('admin.dashboard'); // Arahkan ke rute dashboard
+
+            // Pastikan yang login memang admin atau superadmin
+            if (!in_array(auth()->user()->role, ['admin', 'superadmin'])) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'Akun ini bukan akun Admin. Silakan gunakan halaman login yang sesuai.',
+                ])->onlyInput('email');
+            }
+
+            return redirect()->route('admin.dashboard');
         }
 
         return back()->withErrors([
             'email' => 'Email atau Password yang Anda berikan tidak terdaftar di database kami.',
-        ]);
+        ])->onlyInput('email');
     }
 
-    // 3. Fungsi memroses Log Out (Keluar)
-    public function logout(Request $request) {
+    /**
+     * Proses logout Admin.
+     */
+    public function logout(Request $request)
+    {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/');
+
+        return redirect()->route('admin.login')
+            ->with('success', 'Anda telah berhasil keluar dari panel admin.');
     }
 }
-

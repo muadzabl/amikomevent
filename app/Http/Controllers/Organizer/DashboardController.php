@@ -12,32 +12,34 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
+
         // Pastikan user memiliki data profil organizer
         $organizer = $user->organizer;
 
         if (!$organizer) {
-            abort(403, 'Profil kepanitiaan/organizer Anda belum terdaftar.');
+            abort(403, 'Profil kepanitiaan/organizer Anda belum terdaftar. Hubungi Admin.');
         }
 
         // 1. Ambil Event khusus milik Organizer ini saja
         $events = Event::where('organizer_id', $organizer->id)->latest()->get();
-        $totalEvents = $events->count();
+        $totalEvents = $events->count() ?? 0;
 
-        // 2. Hitung Total Tiket Terjual khusus event milik Organizer ini
-        $totalTicketsSold = Transaction::whereHas('event', function ($query) use ($organizer) {
-            $query->where('organizer_id', $organizer->id);
-        })->where('status', 'PAID')->count();
+        $paidStatuses = ['PAID', 'paid', 'success', 'SUCCESS', 'settlement', 'capture'];
 
-        // 3. Analitik Total Pendapatan Khusus HIMA Ini
-        $totalRevenue = Transaction::whereHas('event', function ($query) use ($organizer) {
+        // 2. Hitung Total Tiket Terjual
+        $totalTicketsSold = (int) Transaction::whereHas('event', function ($query) use ($organizer) {
             $query->where('organizer_id', $organizer->id);
-        })->where('status', 'PAID')->sum('total_amount');
+        })->whereIn('status', $paidStatuses)->count();
 
-        // 4. Daftar Transaksi Terakhir
-        $recentTransactions = Transaction::whereHas('event', function ($query) use ($organizer) {
+        // 3. Total Pendapatan
+        $totalRevenue = (float) Transaction::whereHas('event', function ($query) use ($organizer) {
             $query->where('organizer_id', $organizer->id);
-        })->with('event')->latest()->take(5)->get();
+        })->whereIn('status', $paidStatuses)->sum('total_price');
+
+        // 4. Daftar Semua Transaksi Pembeli Tiket
+        $transactions = Transaction::whereHas('event', function ($query) use ($organizer) {
+            $query->where('organizer_id', $organizer->id);
+        })->with('event')->latest()->get();
 
         return view('organizer.dashboard', compact(
             'organizer',
@@ -45,7 +47,7 @@ class DashboardController extends Controller
             'totalEvents',
             'totalTicketsSold',
             'totalRevenue',
-            'recentTransactions'
+            'transactions'
         ));
     }
 }

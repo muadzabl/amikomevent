@@ -88,9 +88,16 @@
                     <div class="group bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-300 overflow-hidden">
                         <div class="relative overflow-hidden aspect-[3/4]">
                             @if ($event->poster_path)
-                                <img src="{{ asset('storage/' . $event->poster_path) }}"
+                                @php
+                                    // Deteksi apakah sudah URL Cloudinary/external (http/https) atau path lokal
+                                    $posterUrl = Str::startsWith($event->poster_path, ['http://', 'https://'])
+                                        ? $event->poster_path
+                                        : asset('storage/' . $event->poster_path);
+                                @endphp
+                                <img src="{{ $posterUrl }}"
                                      alt="{{ $event->title }}"
-                                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                     onerror="this.onerror=null; this.src='https://placehold.co/400x533/eef2ff/6366f1?text=No+Image'; this.classList.remove('group-hover:scale-110');">
                             @else
                                 <div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-300">
                                     <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,6 +105,7 @@
                                     </svg>
                                 </div>
                             @endif
+
                             @if ($event->category)
                                 <div class="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur rounded-lg text-xs font-bold uppercase text-indigo-600">
                                     {{ $event->category->name }}
