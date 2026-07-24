@@ -19,6 +19,35 @@ use App\Http\Controllers\Organizer\AuthController as OrganizerAuthController;
 use App\Http\Controllers\Organizer\DashboardController as OrganizerDashboardController;
 
 // ==========================================
+// [SEMENTARA] RESET PASSWORD - HAPUS SETELAH DIPAKAI
+// ==========================================
+Route::get('/reset-akun-temp-x7k2', function () {
+    $users = [
+        ['email' => 'hmssi@amikom.ac.id',   'role' => 'organizer', 'password' => 'password123'],
+        ['email' => 'admin@amikom.ac.id',    'role' => 'admin',     'password' => 'password'],
+    ];
+    $results = [];
+    foreach ($users as $u) {
+        $user = \App\Models\User::where('email', $u['email'])->first();
+        if ($user) {
+            $user->password = bcrypt($u['password']);
+            $user->role = $u['role'];
+            $user->save();
+            $results[] = "✅ {$u['email']} → password: {$u['password']} | role: {$u['role']}";
+        } else {
+            \App\Models\User::create([
+                'name'     => ucfirst(explode('@', $u['email'])[0]),
+                'email'    => $u['email'],
+                'password' => bcrypt($u['password']),
+                'role'     => $u['role'],
+            ]);
+            $results[] = "✅ [BARU] {$u['email']} → password: {$u['password']} | role: {$u['role']}";
+        }
+    }
+    return '<pre style="font-size:16px;padding:20px;">'.implode("\n", $results)."\n\n⚠️ HAPUS ROUTE INI SETELAH SELESAI!</pre>";
+});
+
+// ==========================================
 // RUTE USER / CUSTOMER AREA - PUBLIK
 // ==========================================
 Route::get('/', [HomeController::class, 'index'])->name('home');
