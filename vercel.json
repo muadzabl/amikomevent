@@ -45,7 +45,7 @@
     ],
     "env": {
         "APP_ENV": "production",
-        "APP_DEBUG": "false",
+        "APP_DEBUG": "true",
         "VERCEL": "1",
         "APP_CONFIG_CACHE": "/tmp/storage/bootstrap/cache/config.php",
         "APP_EVENTS_CACHE": "/tmp/storage/bootstrap/cache/events.php",
