@@ -4,9 +4,9 @@
 $tmpDirs = [
     '/tmp/storage/framework/views',
     '/tmp/storage/framework/sessions',
-    '/tmp/storage/framework/cache',
+    '/tmp/storage/framework/cache/data',
     '/tmp/storage/bootstrap/cache',
-    '/tmp/logs',
+    '/tmp/storage/logs',
 ];
 
 foreach ($tmpDirs as $dir) {
@@ -15,4 +15,4 @@ foreach ($tmpDirs as $dir) {
     }
 }
 
-require __DIR__. '/../public/index.php';
+require __DIR__. '/../public/index.php';
