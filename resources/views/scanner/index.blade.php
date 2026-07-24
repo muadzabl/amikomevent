@@ -44,15 +44,28 @@
                     <p class="text-[11px] text-slate-400">Anti-Fraud Gate Protection</p>
                 </div>
             </div>
-            <div class="text-right">
-                <span class="text-xs text-emerald-400 font-bold block">{{ auth()->user()->name }}</span>
-                <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full uppercase font-extrabold">Panitia</span>
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <span class="text-xs text-emerald-400 font-bold block">{{ auth()->user()->name }}</span>
+                    <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full uppercase font-extrabold">Panitia</span>
+                </div>
             </div>
         </div>
     </header>
 
     {{-- Container Utama --}}
     <main class="max-w-lg mx-auto w-full px-4 py-4 flex-1 flex flex-col gap-4">
+
+        {{-- Button Kembali ke Dashboard --}}
+        <div>
+            <a href="{{ auth()->user()->role === 'organizer' ? route('partner.dashboard') : (in_array(auth()->user()->role, ['admin','superadmin']) ? route('admin.dashboard') : route('home')) }}" 
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-emerald-400 hover:text-emerald-300 border border-slate-800 hover:border-emerald-500/50 rounded-xl text-xs font-bold transition shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Kembali ke Dashboard Partner
+            </a>
+        </div>
 
         {{-- Widget Counter Check-in --}}
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-xl">
