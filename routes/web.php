@@ -35,13 +35,31 @@ Route::get('/reset-akun-temp-x7k2', function () {
             $user->save();
             $results[] = "✅ {$u['email']} → password: {$u['password']} | role: {$u['role']}";
         } else {
-            \App\Models\User::create([
+            $user = \App\Models\User::create([
                 'name'     => ucfirst(explode('@', $u['email'])[0]),
                 'email'    => $u['email'],
                 'password' => bcrypt($u['password']),
                 'role'     => $u['role'],
             ]);
             $results[] = "✅ [BARU] {$u['email']} → password: {$u['password']} | role: {$u['role']}";
+        }
+
+        // Buat profil organizer jika belum ada
+        if ($u['role'] === 'organizer' && $user) {
+            $existing = \App\Models\Organizer::where('user_id', $user->id)->first();
+            if (!$existing) {
+                \App\Models\Organizer::create([
+                    'user_id'     => $user->id,
+                    'name'        => 'HMSSI Amikom',
+                    'description' => 'Himpunan Mahasiswa Sistem & Sains Informasi Amikom',
+                    'is_verified' => true,
+                ]);
+                $results[] = "✅ Profil organizer HMSSI dibuat!";
+            } else {
+                $existing->is_verified = true;
+                $existing->save();
+                $results[] = "✅ Profil organizer sudah ada (is_verified=true)";
+            }
         }
     }
     return '<pre style="font-size:16px;padding:20px;">'.implode("\n", $results)."\n\n⚠️ HAPUS ROUTE INI SETELAH SELESAI!</pre>";
