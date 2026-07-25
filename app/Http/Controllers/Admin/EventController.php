@@ -52,8 +52,7 @@ class EventController extends Controller
         }
 
         if ($request->hasFile('poster')) {
-            // Simpan ke direktori storage/app/public/posters
-            $data['poster_path'] = $request->file('poster')->store('posters', 'public');
+            $data['poster_path'] = $this->uploadPosterFile($request->file('poster'));
         }
 
         // Menyimpan data yang telah divalidasi ke dalam tabel menggunakan Model
@@ -104,12 +103,12 @@ class EventController extends Controller
         }
 
         if ($request->hasFile('poster')) {
-            // Hapus gambar lama jika sebelumnya sudah memiliki poster
-            if ($event->poster_path) {
+            // Hapus gambar lama jika sebelumnya berupa file lokal storage
+            if ($event->poster_path && !\Illuminate\Support\Str::startsWith($event->poster_path, ['http://', 'https://'])) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($event->poster_path);
             }
-            // Upload gambar baru
-            $data['poster_path'] = $request->file('poster')->store('posters', 'public');
+            // Upload gambar baru (ke Cloudinary atau lokal)
+            $data['poster_path'] = $this->uploadPosterFile($request->file('poster'));
         }
 
         $event->update($data);
@@ -122,8 +121,8 @@ class EventController extends Controller
      */
     public function destroy(Event $event)
     {
-        // TUGAS: Cek apakah event memiliki berkas poster, jika ada hapus dari storage
-        if ($event->poster_path) {
+        // Hapus berkas poster jika berbentuk file lokal storage
+        if ($event->poster_path && !\Illuminate\Support\Str::startsWith($event->poster_path, ['http://', 'https://'])) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($event->poster_path);
         }
 
@@ -132,5 +131,59 @@ class EventController extends Controller
 
         // Redirect kembali dengan pesan sukses
         return redirect()->route('admin.events.index')->with('success', 'Data Event beserta berkas poster berhasil dihapus.');
+    }
+
+    /**
+     * Helper to upload poster image to Cloudinary if credentials are configured,
+     * otherwise fallback to local public disk storage.
+     */
+    private function uploadPosterFile($file)
+    {
+        $cloudinaryUrl = env('CLOUDINARY_URL');
+        $cloudName = env('CLOUDINARY_CLOUD_NAME');
+        $uploadPreset = env('CLOUDINARY_UPLOAD_PRESET');
+        $apiKey = env('CLOUDINARY_API_KEY');
+        $apiSecret = env('CLOUDINARY_API_SECRET');
+
+        if ($cloudinaryUrl) {
+            $parsed = parse_url($cloudinaryUrl);
+            if (isset($parsed['host'])) {
+                $cloudName = $parsed['host'];
+                $apiKey = $parsed['user'] ?? $apiKey;
+                $apiSecret = $parsed['pass'] ?? $apiSecret;
+            }
+        }
+
+        if ($cloudName) {
+            try {
+                $params = [];
+                if ($uploadPreset) {
+                    $params['upload_preset'] = $uploadPreset;
+                } elseif ($apiKey && $apiSecret) {
+                    $timestamp = time();
+                    $signature = sha1("timestamp={$timestamp}" . $apiSecret);
+                    $params['api_key'] = $apiKey;
+                    $params['timestamp'] = $timestamp;
+                    $params['signature'] = $signature;
+                }
+
+                if (!empty($params)) {
+                    $response = \Illuminate\Support\Facades\Http::attach(
+                        'file',
+                        file_get_contents($file->getRealPath()),
+                        $file->getClientOriginalName()
+                    )->post("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload", $params);
+
+                    if ($response->successful() && isset($response->json()['secure_url'])) {
+                        return $response->json()['secure_url'];
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Cloudinary Upload Error: ' . $e->getMessage());
+            }
+        }
+
+        // Fallback to local storage disk if Cloudinary is not configured or upload fails
+        return $file->store('posters', 'public');
     }
 }

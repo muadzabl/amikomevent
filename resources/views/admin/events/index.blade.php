@@ -28,9 +28,14 @@
                                 <tr class="hover:bg-slate-50/50 transition">
                                     <td class="px-8 py-6 font-bold text-slate-400">{{ $events->firstItem() + $index }}</td>
                                     <td class="px-8 py-6">
-                                        <img src="{{ ($event->poster_path && Storage::disk('public')->exists($event->poster_path))
-                        ? asset('storage/' . $event->poster_path)
-                        : 'https://placehold.co/16x20' }}"
+                                        @php
+                                            $posterUrl = Str::startsWith($event->poster_path, ['http://', 'https://'])
+                                                ? $event->poster_path
+                                                : ($event->poster_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($event->poster_path)
+                                                    ? asset('storage/' . $event->poster_path)
+                                                    : 'https://placehold.co/160x200/eef2ff/6366f1?text=No+Image');
+                                        @endphp
+                                        <img src="{{ $posterUrl }}"
                                             class="w-16 h-20 rounded-xl object-cover shadow-sm" alt="{{ $event->title }}">
                                     </td>
                                     <td class="px-8 py-6">
