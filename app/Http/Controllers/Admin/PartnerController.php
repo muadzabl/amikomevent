@@ -39,13 +39,25 @@ class PartnerController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'logo_url' => 'nullable|url|max:2048',
+            'name'      => 'required|string|max:255',
+            'logo_url'  => 'nullable|string|max:2048',
+            'logo_file' => 'nullable|image|max:2048',
         ]);
+
+        $logoUrl = null;
+
+        if ($request->hasFile('logo_file')) {
+            $logoUrl = $this->uploadLogoFile($request->file('logo_file'));
+        } elseif ($request->filled('logo_url')) {
+            $logoUrl = trim($request->logo_url);
+            if (!\Illuminate\Support\Str::startsWith($logoUrl, ['http://', 'https://'])) {
+                $logoUrl = 'https://' . $logoUrl;
+            }
+        }
 
         Partner::create([
             'name'     => $request->name,
-            'logo_url' => $request->logo_url,
+            'logo_url' => $logoUrl,
         ]);
 
         return redirect()->route('admin.partners.index')
@@ -66,13 +78,25 @@ class PartnerController extends Controller
     public function update(Request $request, Partner $partner)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'logo_url' => 'nullable|url|max:2048',
+            'name'      => 'required|string|max:255',
+            'logo_url'  => 'nullable|string|max:2048',
+            'logo_file' => 'nullable|image|max:2048',
         ]);
+
+        $logoUrl = $partner->logo_url;
+
+        if ($request->hasFile('logo_file')) {
+            $logoUrl = $this->uploadLogoFile($request->file('logo_file'));
+        } elseif ($request->filled('logo_url')) {
+            $logoUrl = trim($request->logo_url);
+            if (!\Illuminate\Support\Str::startsWith($logoUrl, ['http://', 'https://'])) {
+                $logoUrl = 'https://' . $logoUrl;
+            }
+        }
 
         $partner->update([
             'name'     => $request->name,
-            'logo_url' => $request->logo_url,
+            'logo_url' => $logoUrl,
         ]);
 
         return redirect()->route('admin.partners.index')
@@ -88,5 +112,64 @@ class PartnerController extends Controller
 
         return redirect()->route('admin.partners.index')
             ->with('success', 'Partner berhasil dihapus!');
+    }
+
+    /**
+     * Helper to upload partner logo image to Cloudinary if credentials are configured,
+     * otherwise fallback to local public disk storage.
+     */
+    private function uploadLogoFile($file)
+    {
+        $cloudinaryUrl = config('services.cloudinary.url')
+            ?? env('CLOUDINARY_URL')
+            ?? $_ENV['CLOUDINARY_URL']
+            ?? $_SERVER['CLOUDINARY_URL']
+            ?? getenv('CLOUDINARY_URL')
+            ?? null;
+
+        $cloudName = config('services.cloudinary.cloud_name') ?? env('CLOUDINARY_CLOUD_NAME') ?? getenv('CLOUDINARY_CLOUD_NAME');
+        $uploadPreset = config('services.cloudinary.upload_preset') ?? env('CLOUDINARY_UPLOAD_PRESET') ?? getenv('CLOUDINARY_UPLOAD_PRESET');
+        $apiKey = config('services.cloudinary.api_key') ?? env('CLOUDINARY_API_KEY') ?? getenv('CLOUDINARY_API_KEY');
+        $apiSecret = config('services.cloudinary.api_secret') ?? env('CLOUDINARY_API_SECRET') ?? getenv('CLOUDINARY_API_SECRET');
+
+        if ($cloudinaryUrl) {
+            $parsed = parse_url($cloudinaryUrl);
+            if (isset($parsed['host'])) {
+                $cloudName = $parsed['host'];
+                $apiKey = isset($parsed['user']) ? rawurldecode($parsed['user']) : $apiKey;
+                $apiSecret = isset($parsed['pass']) ? rawurldecode($parsed['pass']) : $apiSecret;
+            }
+        }
+
+        if ($cloudName) {
+            try {
+                $params = [];
+                if ($uploadPreset) {
+                    $params['upload_preset'] = $uploadPreset;
+                } elseif ($apiKey && $apiSecret) {
+                    $timestamp = time();
+                    $signature = sha1("timestamp={$timestamp}" . $apiSecret);
+                    $params['api_key'] = $apiKey;
+                    $params['timestamp'] = $timestamp;
+                    $params['signature'] = $signature;
+                }
+
+                if (!empty($params)) {
+                    $response = \Illuminate\Support\Facades\Http::attach(
+                        'file',
+                        file_get_contents($file->getRealPath()),
+                        $file->getClientOriginalName()
+                    )->post("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload", $params);
+
+                    if ($response->successful() && isset($response->json()['secure_url'])) {
+                        return $response->json()['secure_url'];
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Cloudinary Partner Upload Error: ' . $e->getMessage());
+            }
+        }
+
+        return $file->store('partners', 'public');
     }
 }

@@ -17,16 +17,23 @@
 
             {{-- Preview logo saat ini --}}
             @if ($partner->logo_url)
+                @php
+                    $previewUrl = \Illuminate\Support\Str::startsWith($partner->logo_url, ['http://', 'https://'])
+                        ? $partner->logo_url
+                        : (\Illuminate\Support\Facades\Storage::disk('public')->exists($partner->logo_url)
+                            ? asset('storage/' . $partner->logo_url)
+                            : 'https://' . $partner->logo_url);
+                @endphp
                 <div class="mb-4 p-3 bg-light rounded text-center">
                     <p class="text-muted small mb-2">Logo Saat Ini:</p>
-                    <img src="{{ $partner->logo_url }}"
+                    <img src="{{ $previewUrl }}"
                          alt="{{ $partner->name }}"
                          style="max-height: 80px; object-fit: contain;"
-                         onerror="this.parentElement.innerHTML='<span class=\'text-danger small\'>Logo tidak dapat dimuat</span>'">
+                         onerror="this.onerror=null; this.src='https://placehold.co/100x50/eef2ff/6366f1?text=No+Logo';">
                 </div>
             @endif
 
-            <form action="{{ route('admin.partners.update', $partner) }}" method="POST">
+            <form action="{{ route('admin.partners.update', $partner) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
@@ -45,10 +52,25 @@
                     @enderror
                 </div>
 
-                <div class="mb-4">
-                    <label for="logo_url" class="form-label fw-semibold">URL Logo</label>
+                <div class="mb-3">
+                    <label for="logo_file" class="form-label fw-semibold">Upload File Logo Baru (Gambar)</label>
                     <input
-                        type="url"
+                        type="file"
+                        name="logo_file"
+                        id="logo_file"
+                        accept="image/*"
+                        class="form-control @error('logo_file') is-invalid @enderror"
+                    >
+                    @error('logo_file')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div class="form-text">Pilih file dari komputer jika ingin mengganti logo dengan file baru (Otomatis disimpan ke Cloudinary).</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="logo_url" class="form-label fw-semibold">Atau Masukkan URL Logo (Link Web)</label>
+                    <input
+                        type="text"
                         name="logo_url"
                         id="logo_url"
                         class="form-control @error('logo_url') is-invalid @enderror"
@@ -58,7 +80,7 @@
                     @error('logo_url')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
-                    <div class="form-text">Kosongkan jika tidak ingin mengubah logo.</div>
+                    <div class="form-text">Bisa menggunakan link gambar eksternal (misal: https://...).</div>
                 </div>
 
                 <div class="d-flex gap-2">

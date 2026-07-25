@@ -161,7 +161,14 @@
                 @foreach ($partners as $partner)
                     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center gap-3">
                         @if ($partner->logo_url)
-                            <img src="{{ $partner->logo_url }}"
+                            @php
+                                $partnerLogoUrl = \Illuminate\Support\Str::startsWith($partner->logo_url, ['http://', 'https://'])
+                                    ? $partner->logo_url
+                                    : (\Illuminate\Support\Facades\Storage::disk('public')->exists($partner->logo_url)
+                                        ? asset('storage/' . $partner->logo_url)
+                                        : 'https://' . $partner->logo_url);
+                            @endphp
+                            <img src="{{ $partnerLogoUrl }}"
                                  alt="Logo {{ $partner->name }}"
                                  class="h-12 w-auto object-contain"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">

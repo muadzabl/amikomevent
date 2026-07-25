@@ -145,9 +145,17 @@
                                 <td>
                                     <div class="logo-container">
                                         @if ($partner->logo_url)
-                                            <img src="{{ $partner->logo_url }}"
+                                            @php
+                                                $formattedLogoUrl = \Illuminate\Support\Str::startsWith($partner->logo_url, ['http://', 'https://'])
+                                                    ? $partner->logo_url
+                                                    : (\Illuminate\Support\Facades\Storage::disk('public')->exists($partner->logo_url)
+                                                        ? asset('storage/' . $partner->logo_url)
+                                                        : 'https://' . $partner->logo_url);
+                                            @endphp
+                                            <img src="{{ $formattedLogoUrl }}"
                                                  alt="{{ $partner->name }}"
-                                                 onerror="this.src='https://via.placeholder.com/80x40?text=No+Logo'">
+                                                 style="max-height: 40px; max-width: 80px; object-fit: contain;"
+                                                 onerror="this.onerror=null; this.src='https://placehold.co/100x50/eef2ff/6366f1?text=No+Logo';">
                                         @else
                                             <span class="badge bg-secondary">—</span>
                                         @endif
