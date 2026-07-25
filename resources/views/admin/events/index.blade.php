@@ -36,7 +36,8 @@
                                                     : 'https://placehold.co/160x200/eef2ff/6366f1?text=No+Image');
                                         @endphp
                                         <img src="{{ $posterUrl }}"
-                                            class="w-16 h-20 rounded-xl object-cover shadow-sm" alt="{{ $event->title }}">
+                                            class="w-16 h-20 rounded-xl object-cover shadow-sm" alt="{{ $event->title }}"
+                                            onerror="this.onerror=null; this.src='https://placehold.co/160x200/eef2ff/6366f1?text=No+Image';">
                                     </td>
                                     <td class="px-8 py-6">
                                         <p class="font-black text-slate-800">{{ $event->title }}</p>

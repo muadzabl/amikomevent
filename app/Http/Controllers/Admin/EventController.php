@@ -139,18 +139,24 @@ class EventController extends Controller
      */
     private function uploadPosterFile($file)
     {
-        $cloudinaryUrl = env('CLOUDINARY_URL');
-        $cloudName = env('CLOUDINARY_CLOUD_NAME');
-        $uploadPreset = env('CLOUDINARY_UPLOAD_PRESET');
-        $apiKey = env('CLOUDINARY_API_KEY');
-        $apiSecret = env('CLOUDINARY_API_SECRET');
+        $cloudinaryUrl = config('services.cloudinary.url') 
+            ?? env('CLOUDINARY_URL') 
+            ?? $_ENV['CLOUDINARY_URL'] 
+            ?? $_SERVER['CLOUDINARY_URL'] 
+            ?? getenv('CLOUDINARY_URL') 
+            ?? null;
+
+        $cloudName = config('services.cloudinary.cloud_name') ?? env('CLOUDINARY_CLOUD_NAME') ?? getenv('CLOUDINARY_CLOUD_NAME');
+        $uploadPreset = config('services.cloudinary.upload_preset') ?? env('CLOUDINARY_UPLOAD_PRESET') ?? getenv('CLOUDINARY_UPLOAD_PRESET');
+        $apiKey = config('services.cloudinary.api_key') ?? env('CLOUDINARY_API_KEY') ?? getenv('CLOUDINARY_API_KEY');
+        $apiSecret = config('services.cloudinary.api_secret') ?? env('CLOUDINARY_API_SECRET') ?? getenv('CLOUDINARY_API_SECRET');
 
         if ($cloudinaryUrl) {
             $parsed = parse_url($cloudinaryUrl);
             if (isset($parsed['host'])) {
                 $cloudName = $parsed['host'];
-                $apiKey = $parsed['user'] ?? $apiKey;
-                $apiSecret = $parsed['pass'] ?? $apiSecret;
+                $apiKey = isset($parsed['user']) ? rawurldecode($parsed['user']) : $apiKey;
+                $apiSecret = isset($parsed['pass']) ? rawurldecode($parsed['pass']) : $apiSecret;
             }
         }
 
